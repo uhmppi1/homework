@@ -16,7 +16,7 @@ verbose = 2
 
 ALGORITHMS={'behavior_cloning', 'DAgger'}
 
-IMITATION_ITERATION = 20
+IMITATION_ITERATION = 200
 
 
 class ImitationSchool:
@@ -56,7 +56,8 @@ class ImitationSchool:
         policy_to_train = student.policy_to_train
 
         debug(log_level_info, 'behavior_cloning generate_rollouts START')
-        train_data = self.generate_rollouts(env, policy_to_act, max_steps, 200, False, 0)
+        #train_data = self.generate_rollouts(env, policy_to_act, max_steps, 100, False, 0)
+        train_data = self.generate_rollouts(env, policy_to_act, max_steps, 3, False, 0)
         debug(log_level_info, 'behavior_cloning generate_rollouts OK')
         val_data = self.make_validation(env, teacher.policy, max_steps)
         debug(log_level_info, 'behavior_cloning make_validation OK')
@@ -66,7 +67,8 @@ class ImitationSchool:
         for i in range(IMITATION_ITERATION+1):
             debug(log_level_info, 'Iteration : %d' % i)
             if i == 0:
-                epochs = 200
+                #epochs = 100
+                epochs = 10
             else:
                 epochs = 4
             policy_to_train.train(train_data, val_data, epochs, verbose)
@@ -90,14 +92,18 @@ class ImitationSchool:
         for i in range(IMITATION_ITERATION+1):
             debug(log_level_info, 'Iteration : %d' % i)
             if i == 0:   # same as behavior_cloning
-                rollouts = 20
-                epochs = 20
+                #rollouts = 100
+                #epochs = 100
+                rollouts = 3
+                epochs = 3
                 train_data = self.generate_rollouts(env, teacher.policy, max_steps, rollouts, False, 0)
                 policy_to_train.train(train_data, val_data, epochs, verbose)
             else:
                 rollouts = 1
                 epochs = 4
-                policy_to_act.teacher_act_ratio -= 1/IMITATION_ITERATION
+                #policy_to_act.teacher_act_ratio -= 1/IMITATION_ITERATION
+                debug(log_level_info, 'DAgger Iter %d, teacher_act_ratio = %f' % (i, policy_to_act.teacher_act_ratio))
+                policy_to_act.init_rollout_data(i-1)
                 self.generate_rollouts(env, policy_to_act, max_steps, rollouts, False, 0)
                 policy_to_train.train(policy_to_act.teacher_data(), val_data, epochs, verbose)
 
@@ -125,6 +131,7 @@ class ImitationSchool:
         max_steps = self.env.spec.timestep_limit
         self.generate_rollouts(self.env, self.teacher.policy, max_steps, num_rollouts, render=True, verbose=0)
 
+    ''' pipaek : generate_rollouts only for Dense..
     # Generates rollouts of the policy on the environment, prints the mean & std of
     # the rewards, and returns the observations and actions.
     def generate_rollouts(self, env, policy, max_steps, num_rollouts, render, verbose):
@@ -155,13 +162,56 @@ class ImitationSchool:
 
         debug(log_level_info, 'Return summary: mean=%f, std=%f' % (np.mean(returns), np.std(returns)))
 
-        return (np.array(observations), np.array(actions))
+        return (np.array(observations), np.array(actions))'''
+
+    # pipaek : To adapt for both Recurrence and Dense...
+    # Generates rollouts of the policy on the environment, prints the mean & std of
+    # the rewards, and returns the observations and actions.
+    def generate_rollouts(self, env, policy, max_steps, num_rollouts, render, verbose):
+        returns = []
+        rollouts = []
+        for i in range(num_rollouts):
+            obs = env.reset()
+            done = False
+            totalr = 0.
+            steps = 0
+            observations = []
+            actions = []
+            while not done:
+                action = policy.act(obs)
+                observations.append(obs)
+                actions.append(action)
+                obs, r, done, _ = env.step(action)
+                totalr += r
+                steps += 1
+                if render:
+                    env.render()
+                if steps % 100 == 0 and verbose >= 2:
+                    debug(log_level_trace, "%i/%i" % (steps, max_steps))
+                if steps >= max_steps:
+                    break
+            rollouts.append((observations, actions))
+            if verbose >= 1:
+                debug(log_level_info, 'rollout %i/%i return=%f' % (i + 1, num_rollouts, totalr))
+            returns.append(totalr)
+
+        debug(log_level_info, 'Return summary: mean=%f, std=%f' % (np.mean(returns), np.std(returns)))
+
+        return rollouts
 
     # Make a small but low-variance validation test by subsampling across many episodes.
+    ''' pipaek : make_validation only for Dense..
     def make_validation(self, env, policy, max_steps):
         val_data = self.generate_rollouts(env, policy, max_steps, 50, False, 0)
         val_data = (val_data[0][::10], val_data[1][::10])
-        return val_data
+        return val_data'''
+
+    # pipaek : To adapt for both Recurrence and Dense...
+    #rollouts.append((observations, actions))
+    def make_validation(self, env, policy, max_steps):
+        val_data = self.generate_rollouts(env, policy, max_steps, 50, False, 0)
+        #val_data = (val_data[0][::10], val_data[1][::10])
+        return val_data[::10]
 
     def weight_file_path(self, model):
         dir = work_dir + '/games/' + self.env_name

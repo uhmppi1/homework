@@ -34,6 +34,9 @@ def run_imitation_learning(game, module_name, algorithm, model, mode, num_rollou
 
 game = Game('RoboschoolHopper-v1')
 model=DenseModel(game.env)
+#model=RecurrentModel(game.env)
+#model=DenseModelBigger(game.env)
+#model=RecurrentModel(game.env)
 #run_imitation_learning('RoboschoolHopper-v1', 'RoboschoolHopper_v1_2017jul', 'behavior_cloning', None, mode='demo', num_rollouts=5)
 #run_imitation_learning(game, 'RoboschoolHopper_v1_2017jul', 'behavior_cloning', model=None, mode='demo', num_rollouts=5)
 #run_imitation_learning(game.env_name, 'RoboschoolHopper_v1_2017jul', 'behavior_cloning', model=SequentialModel(game.env), mode='train', num_rollouts=5)
@@ -42,15 +45,49 @@ model=DenseModel(game.env)
 #run_imitation_learning(game, 'RoboschoolHopper_v1_2017jul', 'behavior_cloning', model=model, mode='train')
 #run_imitation_learning(game, 'RoboschoolHopper_v1_2017jul', 'behavior_cloning', model=model, mode='perform', num_rollouts=5)
 
-#run_imitation_learning(game, 'RoboschoolHopper_v1_2017jul', 'DAgger', model=model, mode='train')
-run_imitation_learning(game, 'RoboschoolHopper_v1_2017jul', 'DAgger', model=model, mode='perform', num_rollouts=5)
+run_imitation_learning(game, 'RoboschoolHopper_v1_2017jul', 'DAgger', model=model, mode='train')
+#run_imitation_learning(game, 'RoboschoolHopper_v1_2017jul', 'behavior_cloning', model=model, mode='train')
+#run_imitation_learning(game, 'RoboschoolHopper_v1_2017jul', 'behavior_cloning', model=model, mode='perform', num_rollouts=20)
+
+
+'''game = Game('RoboschoolAnt-v1')
+model=DenseModel(game.env)
+run_imitation_learning(game, 'RoboschoolAnt_v1_2017jul', 'behavior_cloning', model=model, mode='train')
+run_imitation_learning(game, 'RoboschoolAnt_v1_2017jul', 'DAgger', model=model, mode='train')
+model=DenseModelBigger(game.env)
+run_imitation_learning(game, 'RoboschoolAnt_v1_2017jul', 'behavior_cloning', model=model, mode='train')
+run_imitation_learning(game, 'RoboschoolAnt_v1_2017jul', 'DAgger', model=model, mode='train')
+
+#run_imitation_learning(game, 'RoboschoolAnt_v1_2017jul', 'behavior_cloning', model=model, mode='perform')
+#run_imitation_learning(game, 'RoboschoolAnt_v1_2017jul', 'DAgger', model=model, mode='train')
+run_imitation_learning(game, 'RoboschoolAnt_v1_2017jul', 'DAgger', model=model, mode='perform', num_rollouts=5)'''
+
+
+
+
+'''roll1 = (np.array([1, 2, 3]), np.array(['a', 'b', 'c']))
+roll2 = (np.array([4, 5]), np.array(['d', 'e']))
+roll3 = (np.array([6, 7, 8, 9]), np.array(['f', 'g', 'h', 'i']))
+
+roll_arr = np.array([roll1, roll2, roll3])
+
+print (roll_arr)
+
+roll_list = roll_arr.tolist()
+
+print(roll_list)'''
 
 
 
 
 
+#roll_arr = np.array([roll1, roll2, roll3])
 
+#print (roll_arr)
 
+#roll_list = roll_arr.tolist()
+
+#print(roll_list)
 
 
 

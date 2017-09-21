@@ -67,7 +67,7 @@ class TeacherActionPolicy(Policy):
 # A policy that may use the student's action but, with probability
 # fraction_assist, uses the teacher's action instead. In either case, it
 # remembers the teacher's action, which can be used for supervised learning.
-class DaggerActionPolicy(Policy):
+'''class DaggerActionPolicy(Policy):
     def __init__(self, env, teacher, student):
         self.CAPACITY = 100000
         self.teacher = teacher
@@ -93,4 +93,47 @@ class DaggerActionPolicy(Policy):
             return self.student.myact(obs)
 
     def teacher_data(self):
-        return (self.obs_data[:self.size], self.act_data[:self.size])
+        return (self.obs_data[:self.size], self.act_data[:self.size])'''
+
+class DaggerActionPolicy(Policy):
+    def __init__(self, env, teacher, student):
+        self.ROLLOUT_CAPACITY = 200
+        self.teacher = teacher
+        self.student = student
+        self.teacher_act_ratio = 1.
+        self.next_idx = 0
+        self.size = 0
+        self.rollout_idx = 0
+        self.rollout_size = 0
+        self.rollouts = []
+
+        input_len, output_len = env_dims(env)
+        #self.obs_data = np.empty([self.CAPACITY, input_len])
+        #self.act_data = np.empty([self.CAPACITY, output_len])
+    def init_rollout_data(self, idx_rollout):
+        obs_data = []
+        act_data = []
+        if idx_rollout < self.ROLLOUT_CAPACITY:
+            self.rollout_idx = idx_rollout
+            self.rollouts.append((obs_data, act_data))
+            self.rollout_size += 1
+        else:
+            self.rollout_idx = idx_rollout % self.ROLLOUT_CAPACITY
+            self.rollouts[self.rollout_idx] = (obs_data, act_data)
+        self.teacher_act_ratio -= (1 / self.ROLLOUT_CAPACITY)
+
+    def act(self, obs):
+        teacher_act = self.teacher.policy.act(obs)
+        obs_data = self.rollouts[self.rollout_idx][0]
+        act_data = self.rollouts[self.rollout_idx][1]
+        obs_data.append(obs)
+        act_data.append(teacher_act)
+
+        if random.random() < self.teacher_act_ratio:
+            return teacher_act
+        else:
+            return self.student.myact(obs)
+
+    def teacher_data(self):
+        #return (self.obs_data[:self.size], self.act_data[:self.size])
+        return self.rollouts
