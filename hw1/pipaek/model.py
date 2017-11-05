@@ -47,7 +47,10 @@ class DenseModel(Model):
                 self.net.add(Dropout(dropout))
         self.net.add(Dense(units=output_len))
 
+        #optimizer.__setattr__('lr', 0.001)
+
         self.net.compile(loss=loss, optimizer=optimizer)
+        #self.net.optimizer.__setattr__('lr', 0.001)
 
     def train(self, train_data, val_data, epochs, verbose):
         _train_data = self.rollout_to_train_data(train_data)
@@ -68,9 +71,6 @@ class DenseModel(Model):
         unzip_list_arr = np.array(unzip_list)
         print(unzip_list_arr.shape)
 
-
-
-
         return (np.array(list(np.concatenate(unzip_list_arr[0]))), np.array(list(np.concatenate(unzip_list_arr[1]))))
 
 
@@ -78,6 +78,18 @@ class DenseModel(Model):
 class DenseModelBigger(DenseModel):
     def __init__(self, env, layer_units=(256, 256, 128, 128), activation='relu', loss='mse', optimizer='sgd', dropout=0.2):
         super(DenseModelBigger, self).__init__(env, layer_units=layer_units, activation=activation, loss=loss, optimizer=optimizer, dropout=dropout)
+
+# same, but smaller than DenseModel
+class DenseModelSmaller(DenseModel):
+    def __init__(self, env, layer_units=(64, 64), activation='relu', loss='mse', optimizer='sgd', dropout=0.2):
+        super(DenseModelSmaller, self).__init__(env, layer_units=layer_units, activation=activation, loss=loss,
+                                               optimizer=optimizer, dropout=dropout)
+
+# same, but much smaller than DenseModel
+class DenseModelTiny(DenseModel):
+    def __init__(self, env, layer_units=(64,), activation='relu', loss='mse', optimizer='sgd', dropout=0):
+        super(DenseModelTiny, self).__init__(env, layer_units=layer_units, activation=activation, loss=loss,
+                                                optimizer=optimizer, dropout=dropout)
 
 
 #same, but bigger than DenseModel
