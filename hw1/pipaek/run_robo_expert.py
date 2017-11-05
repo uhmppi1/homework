@@ -32,8 +32,9 @@ def run_imitation_learning(game, module_name, algorithm, model, mode, num_rollou
 
 
 
-game = Game('RoboschoolHopper-v1')
-model=DenseModel(game.env)
+#game = Game('RoboschoolHopper-v1')
+game = Game('RoboschoolAnt-v1')
+model=DenseModelTiny(game.env)
 #model=RecurrentModel(game.env)
 #model=DenseModelBigger(game.env)
 #model=RecurrentModel(game.env)
@@ -45,7 +46,8 @@ model=DenseModel(game.env)
 #run_imitation_learning(game, 'RoboschoolHopper_v1_2017jul', 'behavior_cloning', model=model, mode='train')
 #run_imitation_learning(game, 'RoboschoolHopper_v1_2017jul', 'behavior_cloning', model=model, mode='perform', num_rollouts=5)
 
-run_imitation_learning(game, 'RoboschoolHopper_v1_2017jul', 'DAgger', model=model, mode='train')
+#run_imitation_learning(game, 'RoboschoolAnt_v1_2017jul', 'DAgger', model=model, mode='train')
+run_imitation_learning(game, 'RoboschoolAnt_v1_2017jul', 'DAgger', model=model, mode='demo')
 #run_imitation_learning(game, 'RoboschoolHopper_v1_2017jul', 'behavior_cloning', model=model, mode='train')
 #run_imitation_learning(game, 'RoboschoolHopper_v1_2017jul', 'behavior_cloning', model=model, mode='perform', num_rollouts=20)
 
