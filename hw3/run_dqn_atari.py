@@ -50,6 +50,8 @@ def atari_learn(env,
     def stopping_criterion(env, t):
         # notice that here t is the number of steps of the wrapped env,
         # which is different from the number of steps in the underlying env
+        if(t%10000==0):
+            print("get_total_steps:"+str(get_wrapper_by_name(env, "Monitor").get_total_steps())+", t:"+str(t)+", num_timesteps:"+str(num_timesteps))
         return get_wrapper_by_name(env, "Monitor").get_total_steps() >= num_timesteps
 
     exploration_schedule = PiecewiseSchedule(
@@ -60,12 +62,20 @@ def atari_learn(env,
         ], outside_value=0.01
     )
 
+    exploration_schedule2 = PiecewiseSchedule(
+        [
+            (0, 1.0),
+            (2e6, 0.1),
+            (num_iterations / 2, 0.01),
+        ], outside_value=0.01
+    )
+
     dqn.learn(
         env,
         q_func=atari_model,
         optimizer_spec=optimizer,
         session=session,
-        exploration=exploration_schedule,
+        exploration=exploration_schedule2,    #pipaek
         stopping_criterion=stopping_criterion,
         replay_buffer_size=1000000,
         batch_size=32,
@@ -121,12 +131,17 @@ def main():
     benchmark = gym.benchmark_spec('Atari40M')
 
     # Change the index to select a different game.
-    task = benchmark.tasks[3]
+    #task = benchmark.tasks[3]
+    task = benchmark.tasks[0]  # beam rider
+    #task = benchmark.tasks[1]  # breakout
 
+    #task.env_id
     # Run training
     seed = 0 # Use a seed of zero (you may want to randomize the seed!)
     env = get_env(task, seed)
+    #env.
     session = get_session()
+    print("task:"+task.env_id+" max_timesteps:"+str(task.max_timesteps))
     atari_learn(env, session, num_timesteps=task.max_timesteps)
 
 if __name__ == "__main__":

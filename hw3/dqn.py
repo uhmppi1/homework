@@ -8,6 +8,8 @@ import tensorflow.contrib.layers as layers
 from collections import namedtuple
 from dqn_utils import *
 
+import pipaek.util as myutil
+
 OptimizerSpec = namedtuple("OptimizerSpec", ["constructor", "kwargs", "lr_schedule"])
 
 def learn(env,
@@ -87,6 +89,7 @@ def learn(env,
     else:
         img_h, img_w, img_c = env.observation_space.shape
         input_shape = (img_h, img_w, frame_history_len * img_c)
+    myutil.debug(myutil.log_level_trace, "input_shape:"+str(input_shape))
     num_actions = env.action_space.n
 
     # set up placeholders
@@ -170,6 +173,11 @@ def learn(env,
     best_mean_episode_reward = -float('inf')
     last_obs = env.reset()
     LOG_EVERY_N_STEPS = 10000
+    #pipaek : customize epsilon while mean reward is not satistactory
+    epsilon = 0
+    unsatisfaction = 0
+
+    myutil.make_logtable_ifnot_exist()   # pipaek
 
     for t in itertools.count():
         ### 1. Check stopping criterion
@@ -212,6 +220,12 @@ def learn(env,
         frame_idx = replay_buffer.store_frame(last_obs)
 
         epsilon = exploration.value(t)
+        #pipaek : customize epsilon
+        if model_initialized and best_mean_episode_reward > 0 and mean_episode_reward > 0:
+            epsilon = epsilon * (best_mean_episode_reward / mean_episode_reward)
+            if epsilon < 0.1:
+                epsilon = epsilon * max(1, unsatisfaction / 10)   #100 times unsatisfied, epsilon grows up to 10 times
+
         if not model_initialized:
             # take random actions until model initialized
             action = env.action_space.sample()
@@ -318,13 +332,53 @@ def learn(env,
         episode_rewards = get_wrapper_by_name(env, "Monitor").get_episode_rewards()
         if len(episode_rewards) > 0:
             mean_episode_reward = np.mean(episode_rewards[-100:])
+            #if t % LOG_EVERY_N_STEPS == 0 and model_initialized:
+            #    if mean_episode_reward > best_mean_episode_reward:
+            #        unsatisfaction = 0
+
+        # pipaek : calculate unsatisfaction
+        #if t % LOG_EVERY_N_STEPS == 0 and model_initialized:
+
+        #    else:
+        #        unsatisfaction = min(100, unsatisfaction+1)
+
         if len(episode_rewards) > 100:
-            best_mean_episode_reward = max(best_mean_episode_reward, mean_episode_reward)
+            prev_best_mean_episode_reward = best_mean_episode_reward
+            best_mean_episode_reward = max(prev_best_mean_episode_reward, mean_episode_reward)
+            if best_mean_episode_reward > prev_best_mean_episode_reward:
+                unsatisfaction = 0
+
+
         if t % LOG_EVERY_N_STEPS == 0 and model_initialized:
+            unsatisfaction = min(100, unsatisfaction + 1)
+
             print("Timestep %d" % (t,))
             print("mean reward (100 episodes) %f" % mean_episode_reward)
             print("best mean reward %f" % best_mean_episode_reward)
             print("episodes %d" % len(episode_rewards))
             print("exploration %f" % exploration.value(t))
+            print("unsatisfaction %d" % unsatisfaction)
+            print("epsilon %f" % epsilon)
             print("learning_rate %f" % optimizer_spec.lr_schedule.value(t))
+
+            # pipaek : insert log to DB  ..
+            #('t_return', 'RoboschoolAnt-v1', 'DAgger', 'DenseModel', 1, 10)
+            #             ValueType      /Game                 /Algorithm   /Model
+            #mean_data = ('mean reward', 'PongNoFrameskip-v3', 'dqn_atari', 'baseline', t/LOG_EVERY_N_STEPS, mean_episode_reward)
+            #best_data = ('best reward', 'PongNoFrameskip-v3', 'dqn_atari', 'baseline', t/LOG_EVERY_N_STEPS, best_mean_episode_reward)
+            #mean_data = ('mean reward', 'BeamRiderNoFrameskip-v3', 'dqn_atari', 'baseline', t / LOG_EVERY_N_STEPS, mean_episode_reward)
+            #best_data = ('best reward', 'BeamRiderNoFrameskip-v3', 'dqn_atari', 'baseline', t / LOG_EVERY_N_STEPS, best_mean_episode_reward)
+            '''mean_data = ('mean reward', 'BreakoutNoFrameskip-v3', 'dqn_atari', 'baseline', t / LOG_EVERY_N_STEPS,
+                         mean_episode_reward)
+            best_data = ('best reward', 'BreakoutNoFrameskip-v3', 'dqn_atari', 'baseline', t / LOG_EVERY_N_STEPS,
+                         best_mean_episode_reward)'''
+            '''mean_data = ('mean reward', 'BeamRiderNoFrameskip-v3', 'dqn_atari', 'exp_2m', t / LOG_EVERY_N_STEPS, mean_episode_reward)
+            best_data = ('best reward', 'BeamRiderNoFrameskip-v3', 'dqn_atari', 'exp_2m', t / LOG_EVERY_N_STEPS, best_mean_episode_reward)'''
+            mean_data = (
+            'mean reward', 'BeamRiderNoFrameskip-v3', 'dqn_atari', 'exp_custom', t / LOG_EVERY_N_STEPS, mean_episode_reward)
+            best_data = ('best reward', 'BeamRiderNoFrameskip-v3', 'dqn_atari', 'exp_custom', t / LOG_EVERY_N_STEPS,
+                         best_mean_episode_reward)
+            datas = (mean_data, best_data)
+            myutil.insert_log_data(datas)
+
             sys.stdout.flush()

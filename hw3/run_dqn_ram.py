@@ -46,6 +46,9 @@ def atari_learn(env,
     def stopping_criterion(env, t):
         # notice that here t is the number of steps of the wrapped env,
         # which is different from the number of steps in the underlying env
+        if (t % 10000 == 0):
+            print("get_total_steps:" + str(get_wrapper_by_name(env, "Monitor").get_total_steps()) + ", t:" + str(
+                t) + ", num_timesteps:" + str(num_timesteps))
         return get_wrapper_by_name(env, "Monitor").get_total_steps() >= num_timesteps
 
     exploration_schedule = PiecewiseSchedule(
@@ -99,7 +102,8 @@ def get_session():
     return session
 
 def get_env(seed):
-    env = gym.make('Pong-ram-v0')
+    #env = gym.make('Pong-ram-v0')
+    env = gym.make('BeamRider-ram-v0')
 
     set_global_seeds(seed)
     env.seed(seed)

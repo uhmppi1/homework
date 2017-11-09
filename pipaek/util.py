@@ -60,7 +60,14 @@ def make_logtable_ifnot_exist():
         query += "  Value REAL "
         query += ")"
 
-        ret = cur.execute(query)
+        try:
+            cur.execute(query)
+            con.commit()
+            print("CREATE TABLE: TB_LOG OK..")
+        except lite.Error as er:
+            print("CREATE TABLE : ERROR CODE..(%s)" % er.message)
+
+        '''ret = cur.execute(query)
 
         if(lite.SQLITE_OK==ret):
             print("CREATE TABLE: TB_LOG OK..")
@@ -71,10 +78,10 @@ def make_logtable_ifnot_exist():
             else :
                 print("CREATE TABLE: ERROR CODE..(%s)" % msg)
 
-        con.commit()
+        con.commit()'''
 
 
-def delete_logtable():
+def drop_logtable():
     con = lite.connect('test.db')
 
     with con:
@@ -83,7 +90,15 @@ def delete_logtable():
         query = "DROP TABLE IF EXISTS "
         query += "TB_LOG"
 
-        ret = cur.execute(query)
+        try:
+            cur.execute(query)
+            con.commit()
+            print("DROP TABLE: TB_LOG OK..")
+        except lite.Error as er:
+            print("DROP TABLE : ERROR CODE..(%s)" % er.message)
+
+
+        '''ret = cur.execute(query)
 
         if(lite.SQLITE_OK==ret):
             print("DROP TABLE: TB_LOG OK..")
@@ -94,7 +109,7 @@ def delete_logtable():
             else :
                 print("DROP TABLE: ERROR CODE..(%s)" % msg)
 
-        con.commit()
+        con.commit()'''
 
 
 
@@ -115,15 +130,20 @@ def insert_log_data(datas):
         query += "  Value = ? "
         query += ")"'''
 
-        ret = cur.executemany(query, datas)
+        try:
+            cur.executemany(query, datas)
+            con.commit()
+            print("INSERT INTO : TB_LOG OK..")
+        except lite.Error as er:
+            print("INSERT INTO : ERROR CODE..(%s)" % er.message)
 
-        if (lite.SQLITE_OK == ret):
+        '''if (lite.SQLITE_OK == ret):
             print("INSERT INTO : TB_LOG OK..")
         else:
             msg = cur.fetchone()
-            print("INSERT INTO : ERROR CODE..(%s)" % msg)
+            print("INSERT INTO : ERROR CODE..(%s)" % msg)'''
 
-        con.commit()
+
 
 
 # conditions is a hashtable whose keys are [columnnames] and values are data is list
@@ -133,15 +153,18 @@ def select_log_data(conditions):
 
     with con:
         cur = con.cursor()
-        condition_cnt = 0
+        #condition_cnt = 0
         condition_one_list = []
 
         query = "SELECT * FROM "
         query += "TB_LOG" + " "
         if conditions is not None:
-            query += "WHERE "
+            #query += get_where_statement(conditions)
+            wherestatement, condition_one_list = get_where_statement(conditions)
+            query += wherestatement
+            '''query += "WHERE "
 
-            assert len(conditions['ValueType']) == 1
+            assert len(conditions['ValueType']) >= 1
 
             for key in conditions.keys():
                 condition_list = conditions[key]
@@ -151,14 +174,55 @@ def select_log_data(conditions):
                     query += key + " "
                     query += "IN ({})".format(','.join('?' * len(condition_list))) + " "
                     condition_cnt += 1
-                    condition_one_list.extend(condition_list)
-            query += "ORDER BY 'ValueType', 'Game', 'Algorithm', 'Model', 'Iter'"
-            print(query)
-            print(condition_one_list)
-            return cur.execute(query, condition_one_list).fetchall()
+                    condition_one_list.extend(condition_list)'''
+        query += "ORDER BY ValueType, Game, Algorithm, Model, Iter"
+        print(query)
+        print(condition_one_list)
+        return cur.execute(query, condition_one_list).fetchall()
 
-        else:
-            assert False
+        #else:
+        #    assert False
+
+
+def delete_previous_log(conditions):
+    con = lite.connect('test.db')
+
+    with con:
+        cur = con.cursor()
+
+        query = "DELETE FROM "
+        query += "TB_LOG" + " "
+        if conditions is not None:
+            # query += get_where_statement(conditions)
+            wherestatement, condition_one_list = get_where_statement(conditions)
+            query += wherestatement
+
+        try:
+            cur.execute(query, condition_one_list)
+            con.commit()
+            print("DELETE FROM TABLE: TB_LOG OK..")
+        except lite.Error as er:
+            print("DELETE FROM TABLE : ERROR CODE..(%s)" % er.message)
+
+
+def get_where_statement(conditions):
+    condition_cnt = 0
+    condition_one_list = []
+    querystr = "WHERE "
+
+    assert len(conditions['ValueType']) >= 1
+
+    for key in conditions.keys():
+        condition_list = conditions[key]
+        if condition_list is not None and len(condition_list) > 0:
+            if condition_cnt > 0:
+                querystr += "AND "
+            querystr += key + " "
+            querystr += "IN ({})".format(','.join('?' * len(condition_list))) + " "
+            condition_cnt += 1
+            condition_one_list.extend(condition_list)
+
+    return querystr, condition_one_list
 
 
 
@@ -173,7 +237,8 @@ def get_plot_data(datas):
     data_y_hash = {}
     for idx in range(len(datas)):
         dataset = datas[idx]
-        key = tuple(list(dataset)[1:4])
+        #key = tuple(list(dataset)[1:4])
+        key = tuple(list(dataset)[0:4])
         data_x = list(dataset)[4]
         data_y = list(dataset)[5]
         if key not in data_x_hash.keys():
@@ -186,13 +251,19 @@ def get_plot_data(datas):
 
 
 
-def draw_plot(datas):
-    ylabel = datas[0][0]
+def draw_plot(datas, x_units=1 ):
     plot_data_x, plot_data_y = get_plot_data(datas)
     plt.figure(figsize=(15, 10))
-    plt.xlabel('Iters')
-    plt.ylabel(ylabel)
+
+    x_label = 'Iters'
+    if(x_units>1):
+        x_label += '('+str(x_units)+'s)'
+    y_label = datas[0][0]
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+
     for keys in plot_data_x.keys():
+        print("plot_data_x.keys(): "+str(keys))
         data_x = plot_data_x[keys]
         data_y = plot_data_y[keys]
         plot_label = str(keys)
