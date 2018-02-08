@@ -221,11 +221,11 @@ def learn(env,
 
         epsilon = exploration.value(t)
         #pipaek : customize epsilon
-        if model_initialized and best_mean_episode_reward > 0 and mean_episode_reward > 0:
+        '''if model_initialized and best_mean_episode_reward > 0 and mean_episode_reward > 0:
             epsilon = epsilon * (best_mean_episode_reward / mean_episode_reward)
             if epsilon < 0.1:
                 epsilon = epsilon * max(1, unsatisfaction / 10)   #100 times unsatisfied, epsilon grows up to 10 times
-
+'''
         if not model_initialized:
             # take random actions until model initialized
             action = env.action_space.sample()
@@ -374,9 +374,14 @@ def learn(env,
                          best_mean_episode_reward)'''
             '''mean_data = ('mean reward', 'BeamRiderNoFrameskip-v3', 'dqn_atari', 'exp_2m', t / LOG_EVERY_N_STEPS, mean_episode_reward)
             best_data = ('best reward', 'BeamRiderNoFrameskip-v3', 'dqn_atari', 'exp_2m', t / LOG_EVERY_N_STEPS, best_mean_episode_reward)'''
-            mean_data = (
+            '''mean_data = (
             'mean reward', 'BeamRiderNoFrameskip-v3', 'dqn_atari', 'exp_custom', t / LOG_EVERY_N_STEPS, mean_episode_reward)
             best_data = ('best reward', 'BeamRiderNoFrameskip-v3', 'dqn_atari', 'exp_custom', t / LOG_EVERY_N_STEPS,
+                         best_mean_episode_reward)'''
+            mean_data = (
+                'mean reward', 'BeamRiderNoFrameskip-v3', 'dqn_atari', 'rep_2m', t / LOG_EVERY_N_STEPS,
+                mean_episode_reward)
+            best_data = ('best reward', 'BeamRiderNoFrameskip-v3', 'dqn_atari', 'rep_2mil', t / LOG_EVERY_N_STEPS,
                          best_mean_episode_reward)
             datas = (mean_data, best_data)
             myutil.insert_log_data(datas)
